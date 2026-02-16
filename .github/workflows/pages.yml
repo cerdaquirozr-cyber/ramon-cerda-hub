@@ -1,33 +1,63 @@
-#### Archivo 2: Crea carpeta `.github/workflows/` y dentro un archivo `pages.yml` (opcional pero chingón para deploy automático)
-Pega esto en `.github/workflows/pages.yml`:
+- name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public # The directory with your static files
+  deploy:
+    needs: build
+    permissions:
+      pages: write # Required permission for deployment
+      id-token: write # Required for OIDC
+    environment:
+      name: github-pages # Standard GitHub Pages environment
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # The action that performs the deployment
+        # Nombre del flujo de trabajo (aparecerá en la pestaña 'Actions' de GitHub)
+name: Desplegar sitio en GitHub Pages
 
-```yaml
-name: Deploy to GitHub Pages
-
+# Disparadores (qué eventos inician este flujo)
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"] # Ejecutar al hacer push a la rama 'main'
+  workflow_dispatch: # Permite ejecutar el flujo manualmente desde la interfaz
 
+# Configuración de permisos para el token de GitHub
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  pages: write      # Necesario para desplegar en GitHub Pages
+  id-token: write   # Necesario para verificar el despliegue
+
+# Permite que las ejecuciones consecutivas se cancelen si hay cambios nuevos
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v4
+
+      - name: Subir artefacto (Build)
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
-      - name: Deploy to GitHub Pages
+          path: '.' # Ruta a los archivos estáticos (ej. ., ./dist, ./build)
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar a GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v4 # Acción oficial de despliegue
+        
