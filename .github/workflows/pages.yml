@@ -1,63 +1,55 @@
-- name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./public # The directory with your static files
-  deploy:
-    needs: build
-    permissions:
-      pages: write # Required permission for deployment
-      id-token: write # Required for OIDC
-    environment:
-      name: github-pages # Standard GitHub Pages environment
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4 # The action that performs the deployment
-        # Nombre del flujo de trabajo (aparecerá en la pestaña 'Actions' de GitHub)
-name: Desplegar sitio en GitHub Pages
+name: Deploy to GitHub Pages
 
-# Disparadores (qué eventos inician este flujo)
 on:
+  # Ejecuta en push a main
   push:
-    branches: ["main"] # Ejecutar al hacer push a la rama 'main'
-  workflow_dispatch: # Permite ejecutar el flujo manualmente desde la interfaz
+    branches: [ "main" ]
 
-# Configuración de permisos para el token de GitHub
+  # Permite correr manualmente desde la pestaña Actions
+  workflow_dispatch:
+
+# Permisos necesarios para desplegar
 permissions:
   contents: read
-  pages: write      # Necesario para desplegar en GitHub Pages
-  id-token: write   # Necesario para verificar el despliegue
+  pages: write
+  id-token: write
 
-# Permite que las ejecuciones consecutivas se cancelen si hay cambios nuevos
+# Cancela runs anteriores si hay nuevos pushes
 concurrency:
   group: "pages"
   cancel-in-progress: true
 
 jobs:
+  # Job de build
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar Pages
-        uses: actions/configure-pages@v4
+      # Si tienes React/Vite u otro framework que necesite build, agrega aquí:
+      # - name: Install dependencies
+      #   run: npm ci
+      # - name: Build
+      #   run: npm run build
 
-      - name: Subir artefacto (Build)
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.' # Ruta a los archivos estáticos (ej. ., ./dist, ./build)
+          # Cambia esto si tu HTML está en otra carpeta (ej: build, dist, public)
+          path: '.'   # ← raíz, porque tienes index.html directo
 
+  # Job de deploy
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    needs: build
     runs-on: ubuntu-latest
+    needs: build
     steps:
-      - name: Desplegar a GitHub Pages
+      - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4 # Acción oficial de despliegue
-        
+        uses: actions/deploy-pages@v4
